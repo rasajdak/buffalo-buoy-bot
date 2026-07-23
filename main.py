@@ -69,12 +69,12 @@ def _conditions_or_skip(label: str):
     return c, is_live
 
 
-def do_text() -> int:
+def do_text(force: bool = False) -> int:
     got = _conditions_or_skip("text")
     if not got:
         return 0
     c, _ = got
-    if not _reading_is_new(c):
+    if not force and not _reading_is_new(c):
         print(f"[text] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
         return 0
     caption = captains_log(c)
@@ -83,12 +83,12 @@ def do_text() -> int:
     return 0
 
 
-def do_log() -> int:
+def do_log(force: bool = False) -> int:
     got = _conditions_or_skip("log")
     if not got:
         return 0
     c, _ = got
-    if not _reading_is_new(c):
+    if not force and not _reading_is_new(c):
         print(f"[log] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
         return 0
     card = render.render_conditions_card(c)
@@ -140,7 +140,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Buffalo Buoy Facebook bot")
     ap.add_argument("command", choices=["tick", "video", "text", "log"])
     ap.add_argument("--dry-run", action="store_true", help="force no-post mode")
-    ap.add_argument("--force", action="store_true", help="ignore active-hours window (tick)")
+    ap.add_argument("--force", action="store_true",
+                    help="post regardless of hours window / unchanged-reading skip")
     args = ap.parse_args()
 
     if args.dry_run:
@@ -152,8 +153,8 @@ def main() -> int:
     return {
         "tick": lambda: do_tick(args.force),
         "video": do_video,
-        "text": do_text,
-        "log": do_log,
+        "text": lambda: do_text(args.force),
+        "log": lambda: do_log(args.force),
     }[args.command]()
 
 
