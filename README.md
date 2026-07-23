@@ -6,7 +6,7 @@ Lake Erie sailor keeping a "Captain's Log."
 
 ## What it posts
 - **`log`** — a conditions card (waves / wind / water & air temp) + a Captain's Log
-  caption that weaves in the live data and one verified Buffalo/Lake Erie fact.
+  caption: sailor-voice commentary interpreting the live conditions.
 - **`video`** — the buoy's ~16s webcam clip whenever S3 publishes a new one, with a
   matching caption. (The clip lives at a single overwriting URL and is *not*
   archived, so we grab each new one before it's replaced.)
@@ -54,8 +54,7 @@ If `FB_PAGE_TOKEN` is unset, everything runs in **DRY RUN** automatically.
 |------|------|
 | `buoy.py` | ERDDAP fetch + unit conversion + snapshot cache |
 | `video.py` | webcam-clip poller / downloader |
-| `facts.py` | curated Buffalo/Lake Erie facts (rotated) |
-| `llm.py` | OpenAI Captain's Log caption writer (+ template fallback) |
+| `llm.py` | OpenAI Captain's Log writer — commentary on current conditions (+ template fallback) |
 | `render.py` | conditions card (PNG) |
 | `content.py` | formatting + non-AI caption/alert text |
 | `facebook.py` | Graph API posting (photo/video/text), DRY_RUN-aware |
