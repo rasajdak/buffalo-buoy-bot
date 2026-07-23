@@ -20,15 +20,37 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import sys
 from zoneinfo import ZoneInfo
 
 import config
 from buoy import get_conditions_cached, NoDataError, Conditions
+from content import stamp
 from llm import captains_log
 import render
 import facebook
 import video
+
+LAST_POST_FILE = config.STATE_DIR / "last_posted_reading.json"
+
+
+def _reading_is_new(c) -> bool:
+    """True unless we've already posted this exact buoy reading (by observed_at)."""
+    if c.observed_at is None or not LAST_POST_FILE.exists():
+        return True
+    try:
+        last = json.loads(LAST_POST_FILE.read_text()).get("observed_at")
+    except (json.JSONDecodeError, OSError):
+        return True
+    return last != c.observed_at.isoformat()
+
+
+def _mark_posted(c) -> None:
+    """Record the reading we just posted (skipped in dry-run so tests are side-effect-free)."""
+    if config.DRY_RUN or c.observed_at is None:
+        return
+    LAST_POST_FILE.write_text(json.dumps({"observed_at": c.observed_at.isoformat()}))
 
 
 def _conditions_or_skip(label: str):
@@ -52,8 +74,12 @@ def do_text() -> int:
     if not got:
         return 0
     c, _ = got
+    if not _reading_is_new(c):
+        print(f"[text] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
+        return 0
     caption = captains_log(c)
     print(f"[text] posted: {facebook.post_text(caption)}")
+    _mark_posted(c)
     return 0
 
 
@@ -62,9 +88,13 @@ def do_log() -> int:
     if not got:
         return 0
     c, _ = got
+    if not _reading_is_new(c):
+        print(f"[log] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
+        return 0
     card = render.render_conditions_card(c)
     caption = captains_log(c)
     print(f"[log] posted: {facebook.post_photo(card, caption)}")
+    _mark_posted(c)
     return 0
 
 
@@ -79,6 +109,7 @@ def _post_video(clip) -> int:
     )
     res = facebook.post_video(clip, caption, title="Buffalo Buoy — live look at Lake Erie")
     print(f"[video] posted: {res}")
+    _mark_posted(c)  # so the next text tick won't parrot the same reading
     return 0
 
 
