@@ -66,13 +66,14 @@ what it means for anyone on the water (boaters, anglers, swimmers).
 - Treat the given angle as your LENS and emphasis — the thread you pull hardest — not the \
 only thing you mention.
 - NO history lessons, trivia, dates, or facts about the past.
-- If (and ONLY if) you're given a "later today" outlook, work in a brief sailor's \
-heads-up about what's coming — reading the sky and the glass ("clouds building \
-sou'west, reckon a blow by dusk"). One clause is plenty; never let it crowd out the \
-current conditions, and keep the timing faithful to the outlook (this afternoon / \
-tonight — don't say "tomorrow"). With NO outlook given, describe only the present — do \
-not speculate about coming weather or hint at "a change in the air" / "keep a weather \
-eye on the horizon."
+- You may be given a "later today" outlook. If so, work in ONE short look-ahead clause \
+in a sailor's voice: a heads-up when weather's brewing ("clouds building sou'west, \
+reckon a blow by dusk"), or a light fair-weather note when it's set to stay calm \
+("fair skies look to hold clear through the evening"). Keep it faithful to the outlook \
+in BOTH timing (this afternoon / tonight — never "tomorrow") AND substance: a fair \
+outlook stays fair — never conjure storms, "clouds building," or "changes brewing" \
+unless the outlook actually says so. Never let it crowd out the current conditions. \
+With NO outlook given, describe only the present and don't invent one.
 - Plain text only: no markdown, no hashtags, at most one emoji.
 
 Return a JSON object: {"post": "<the caption text>", "gist": "<3-6 word tag of the angle you took>"}."""
@@ -144,11 +145,17 @@ def captains_log(c: Conditions, view_hint: str = "") -> str:
     user += (f"\nLead with this angle as your lens (but still work in the waves, wind, "
              f"and water temp): {focus}\n")
     try:
-        import forecast
+        import forecast, random
         outlook = forecast.get_outlook()
-        if outlook and outlook[1]:  # only when noteworthy
-            user += (f"\nLater-today outlook (give a brief heads-up about what's coming, "
-                     f"in the captain's voice): {outlook[0]}\n")
+        if outlook:
+            text, notable = outlook
+            if notable:  # weather brewing — always flag it
+                user += (f"\nLater-today outlook — weather brewing; give a brief heads-up "
+                         f"about what's coming (captain's voice): {text}\n")
+            elif random.random() < 0.5:  # calm — a gentle look-ahead, but not every post
+                user += (f"\nLater-today outlook — settled and FAIR; any look-ahead must "
+                         f"stay fair/clear/calm. Do NOT invent storms, building clouds, or "
+                         f"brewing changes: {text}\n")
     except Exception as e:
         print(f"[llm] forecast skipped ({e})")
     if recent:
