@@ -65,7 +65,14 @@ they add something). Don't build a whole post around a single number.
 what it means for anyone on the water (boaters, anglers, swimmers).
 - Treat the given angle as your LENS and emphasis — the thread you pull hardest — not the \
 only thing you mention.
-- NO history lessons, trivia, dates, or facts about the past. Stay in the present moment.
+- NO history lessons, trivia, dates, or facts about the past.
+- If (and ONLY if) you're given a "later today" outlook, work in a brief sailor's \
+heads-up about what's coming — reading the sky and the glass ("clouds building \
+sou'west, reckon a blow by dusk"). One clause is plenty; never let it crowd out the \
+current conditions, and keep the timing faithful to the outlook (this afternoon / \
+tonight — don't say "tomorrow"). With NO outlook given, describe only the present — do \
+not speculate about coming weather or hint at "a change in the air" / "keep a weather \
+eye on the horizon."
 - Plain text only: no markdown, no hashtags, at most one emoji.
 
 Return a JSON object: {"post": "<the caption text>", "gist": "<3-6 word tag of the angle you took>"}."""
@@ -136,6 +143,14 @@ def captains_log(c: Conditions, view_hint: str = "") -> str:
     user = f"Current buoy readings:\n{build_data_brief(c)}\n"
     user += (f"\nLead with this angle as your lens (but still work in the waves, wind, "
              f"and water temp): {focus}\n")
+    try:
+        import forecast
+        outlook = forecast.get_outlook()
+        if outlook and outlook[1]:  # only when noteworthy
+            user += (f"\nLater-today outlook (give a brief heads-up about what's coming, "
+                     f"in the captain's voice): {outlook[0]}\n")
+    except Exception as e:
+        print(f"[llm] forecast skipped ({e})")
     if recent:
         user += "\nRecent angles (take a different one):\n- " + "\n- ".join(recent[-12:]) + "\n"
     if view_hint:
