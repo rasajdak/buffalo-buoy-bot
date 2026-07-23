@@ -1,0 +1,9 @@
+# secrets & state — never commit
+.env
+state/
+out/
+
+# python
+.venv/
+__pycache__/
+*.pyc
