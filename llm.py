@@ -58,9 +58,13 @@ Each post must:
 - Open with "Captain's Log" and the date/time you're given.
 - Be SHORT: 2 to 4 tight sentences, ~50-90 words.
 - Use ONLY the real readings provided. Never invent or contradict a number.
-- Be COMMENTARY on the current conditions: interpret the readings, don't just recite \
-them. Describe what the lake is actually like right now — its mood — and what it means \
-for anyone on the water (boaters, anglers, swimmers). Lean into the angle you're given.
+- Paint the fuller picture EVERY time: work in the key conditions you're given — at \
+minimum the waves, the wind, AND the water temperature (add air temp or pressure when \
+they add something). Don't build a whole post around a single number.
+- Be COMMENTARY, not a readout: interpret the conditions — the lake's mood right now and \
+what it means for anyone on the water (boaters, anglers, swimmers).
+- Treat the given angle as your LENS and emphasis — the thread you pull hardest — not the \
+only thing you mention.
 - NO history lessons, trivia, dates, or facts about the past. Stay in the present moment.
 - Plain text only: no markdown, no hashtags, at most one emoji.
 
@@ -130,7 +134,8 @@ def captains_log(c: Conditions, view_hint: str = "") -> str:
     recent = _load_recent()
     focus = _next_focus()
     user = f"Current buoy readings:\n{build_data_brief(c)}\n"
-    user += f"\nFocus this entry on: {focus}\n"
+    user += (f"\nLead with this angle as your lens (but still work in the waves, wind, "
+             f"and water temp): {focus}\n")
     if recent:
         user += "\nRecent angles (take a different one):\n- " + "\n- ".join(recent[-12:]) + "\n"
     if view_hint:
