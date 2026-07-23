@@ -12,8 +12,10 @@ Lake Erie sailor keeping a "Captain's Log."
   archived, so we grab each new one before it's replaced.)
 
 ## Data sources (all public, no scraping)
-- Conditions: Seagull ERDDAP `obs_666_latest` (JSON). Resilient to gaps — falls
-  back to the thermistor dataset, then to the last cached reading.
+- Conditions: live Seagull app API `/v2/obs-latest` (dataset 666, ~15-30 min
+  fresh — same feed as the web console; browser headers to clear the WAF).
+  Falls back automatically to the ERDDAP mirror `obs_666_latest` (~45 min lag),
+  then to the last cached reading. Parameter-id→name map cached in `state/`.
 - Video: `https://seagull-webcams.s3.us-east-2.amazonaws.com/BSU2/BSU2_latest.mp4`
   (1080p H.264). New-clip detection via ETag/Last-Modified.
 
