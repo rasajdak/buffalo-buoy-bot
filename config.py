@@ -41,6 +41,18 @@ DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes") or not (
     FB_PAGE_ID and FB_PAGE_TOKEN
 )
 
+# --- Alerting (notify.py) — push a heads-up when publishing is blocked ---
+# Email is optional: if SMTP is unset the bot still logs a loud banner + writes
+# state/alerts.json. To get emailed, fill these in .env (Gmail needs an App Password).
+ALERT_EMAIL_TO = os.environ.get("ALERT_EMAIL_TO", "")
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(_f("SMTP_PORT", 587))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASS = os.environ.get("SMTP_PASS", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", "")  # defaults to SMTP_USER / ALERT_EMAIL_TO
+# A persistent block emails at most once per this many hours (then a reminder).
+ALERT_RENOTIFY_HOURS = _f("ALERT_RENOTIFY_HOURS", 12.0)
+
 # --- OpenAI (Captain's Log caption writer) ---
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")

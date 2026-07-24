@@ -7,9 +7,27 @@ from pathlib import Path
 import requests
 
 import config
+import notify
 
 GRAPH = "https://graph.facebook.com"
 GRAPH_VIDEO = "https://graph-video.facebook.com"
+
+# Alert key shared with main.py: a successful publish clears it, a fatal one raises it.
+PUBLISH_BLOCKED = "publish_blocked"
+
+
+class GraphError(RuntimeError):
+    """A Graph API failure that carries the parsed error code/subcode so callers
+    can distinguish a needs-a-human block (368 checkpoint, 190 dead token) from a
+    transient hiccup."""
+
+    def __init__(self, status: int, error) -> None:
+        err = error if isinstance(error, dict) else {}
+        self.status = status
+        self.code = err.get("code")
+        self.subcode = err.get("error_subcode")
+        self.fb_message = err.get("message", "") if err else str(error)
+        super().__init__(f"Graph API error {status}: {error}")
 
 
 def _dry(kind: str, message: str, media: Path | None) -> dict:
@@ -26,7 +44,8 @@ def _dry(kind: str, message: str, media: Path | None) -> dict:
 def _check(r: requests.Response) -> dict:
     data = r.json()
     if r.status_code >= 400 or "error" in data:
-        raise RuntimeError(f"Graph API error {r.status_code}: {data.get('error', data)}")
+        raise GraphError(r.status_code, data.get("error", data))
+    notify.clear(PUBLISH_BLOCKED)  # a real publish went through — we're not blocked
     return data
 
 

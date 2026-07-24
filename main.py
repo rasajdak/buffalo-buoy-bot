@@ -30,9 +30,42 @@ from content import stamp
 from llm import captains_log
 import render
 import facebook
+import notify
 import video
 
 LAST_POST_FILE = config.STATE_DIR / "last_posted_reading.json"
+
+# Graph error codes that mean "a human must act" — publishing stays broken until
+# then, so we push an alert instead of dying silently in the cron log.
+#   368 = identity checkpoint / Page Publishing Authorization
+#   190 = access token expired or revoked
+FATAL_PUBLISH_CODES = {368, 190}
+
+
+def _blocked_body(e: facebook.GraphError) -> str:
+    if e.code == 368:
+        what = (
+            "Facebook is requiring identity confirmation before the Page can publish "
+            "again. Open the Facebook MOBILE APP as the Page admin and follow the prompt "
+            "(check Notifications, Settings → Account Center → identity confirmation, and "
+            "the Page's Professional dashboard). No redeploy or token change is needed — "
+            "posting resumes on its own within 15 min once you clear it."
+        )
+    elif e.code == 190:
+        what = (
+            "The Facebook Page access token is no longer valid (expired or revoked). "
+            "Generate a fresh non-expiring Page token and update FB_PAGE_TOKEN in "
+            "/opt/buffalo-buoy/.env, then it'll resume."
+        )
+    else:
+        what = "Publishing to the Page failed in a way that needs a look."
+    return (
+        f"{what}\n\n"
+        f"Graph API said: {e.fb_message}\n"
+        f"(code {e.code}, subcode {e.subcode})\n\n"
+        f"The bot keeps trying every 15 min; you'll get at most one alert per "
+        f"{config.ALERT_RENOTIFY_HOURS:.0f}h until it recovers."
+    )
 
 
 def _reading_is_new(c) -> bool:
@@ -150,12 +183,22 @@ def main() -> int:
     ai = config.OPENAI_MODEL if config.USE_AI_CAPTIONS else "template (no OpenAI key)"
     print(f"— Buffalo Buoy bot [{mode}] · captions: {ai} —")
 
-    return {
-        "tick": lambda: do_tick(args.force),
-        "video": do_video,
-        "text": lambda: do_text(args.force),
-        "log": lambda: do_log(args.force),
-    }[args.command]()
+    try:
+        return {
+            "tick": lambda: do_tick(args.force),
+            "video": do_video,
+            "text": lambda: do_text(args.force),
+            "log": lambda: do_log(args.force),
+        }[args.command]()
+    except facebook.GraphError as e:
+        if e.code in FATAL_PUBLISH_CODES:
+            notify.alert(
+                facebook.PUBLISH_BLOCKED,
+                subject=f"Buffalo Buoy bot: publishing blocked (Graph error {e.code})",
+                body=_blocked_body(e),
+            )
+            return 1
+        raise  # transient/unknown Graph errors keep the old loud-traceback behavior
 
 
 if __name__ == "__main__":
