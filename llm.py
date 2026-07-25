@@ -74,9 +74,11 @@ in BOTH timing (this afternoon / tonight — never "tomorrow") AND substance: a 
 outlook stays fair — never conjure storms, "clouds building," or "changes brewing" \
 unless the outlook actually says so. Never let it crowd out the current conditions. \
 With NO outlook given, describe only the present and don't invent one.
-- Match the greeting and mood to the TIME OF DAY you're told: a fresh, waking feel in the \
-morning; an easy, sun-high tone midday; a settling, golden-hour calm as the day winds \
-down; a hushed, tucking-in feel at nightfall.
+- You're given a TIME CONTEXT block (day, date, season, sun position, holidays). Be \
+genuinely aware of it and let it shape the greeting and mood — first light on a waking \
+lake at dawn, an easy tone with the sun high, a golden-hour calm as it sets, a hushed \
+dark after nightfall; a lazy weekend, a holiday, the dog days of summer. Reach for what \
+fits naturally and never just list it back.
 - If told this is the FINAL post of the day, close with a warm goodnight sign-off — bid \
 the followers goodnight and leave the lake settling in for the night.
 - Plain text only: no markdown, no hashtags, at most one emoji.
@@ -141,11 +143,11 @@ def _fallback(c: Conditions, view_hint: str = "", sign_off: bool = False) -> str
 
 
 def captains_log(c: Conditions, view_hint: str = "",
-                 daypart: str | None = None, sign_off: bool = False) -> str:
+                 time_context: str | None = None, sign_off: bool = False) -> str:
     """Return the finished caption text (persona body + link + hashtags).
 
-    daypart / sign_off are scheduling hints from the caller so the tone tracks the
-    time of day and the last post of the day gets a goodnight.
+    time_context is a labelled block (day/date/season/sun/holiday) from the caller;
+    sign_off marks the last post of the day so it gets a goodnight.
     """
     if not config.USE_AI_CAPTIONS:
         return f"{_fallback(c, view_hint, sign_off)}\n\n{CONSOLE_URL}\n{HASHTAGS}"
@@ -155,8 +157,9 @@ def captains_log(c: Conditions, view_hint: str = "",
     user = f"Current buoy readings:\n{build_data_brief(c)}\n"
     user += (f"\nLead with this angle as your lens (but still work in the waves, wind, "
              f"and water temp): {focus}\n")
-    if daypart:
-        user += f"\nTime of day right now: {daypart}. Match the greeting and mood to it.\n"
+    if time_context:
+        user += ("\nTIME CONTEXT (be naturally aware of this — weave in what fits, "
+                 f"don't recite it all):\n{time_context}\n")
     if sign_off:
         user += ("\nThis is the FINAL post of the day — end with a warm goodnight sign-off "
                  "from the buoy, leaving the lake settling in for the night.\n")

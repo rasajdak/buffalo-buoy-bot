@@ -58,6 +58,7 @@ If `FB_PAGE_TOKEN` is unset, everything runs in **DRY RUN** automatically.
 | `video.py` | webcam-clip poller / downloader |
 | `llm.py` | OpenAI Captain's Log writer — commentary on current conditions (+ template fallback) |
 | `forecast.py` | NWS "later today" outlook (Buffalo shore); surfaced only when noteworthy |
+| `timectx.py` | time awareness: weekday/season/holiday + offline sunrise-sunset & sun position |
 | `render.py` | conditions card (PNG) |
 | `content.py` | formatting + non-AI caption/alert text |
 | `facebook.py` | Graph API posting (photo/video/text), DRY_RUN-aware |
