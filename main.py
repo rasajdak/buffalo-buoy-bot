@@ -68,6 +68,28 @@ def _blocked_body(e: facebook.GraphError) -> str:
     )
 
 
+def _time_context() -> tuple[str, bool]:
+    """(daypart phrase, is-final-post-of-day) from the current local time.
+
+    The last active slot is the :45 of the final active hour (cadence 15,45), so
+    the goodnight fires there.
+    """
+    now = dt.datetime.now(ZoneInfo(config.TIMEZONE))
+    h = now.hour
+    if h < 11:
+        daypart = "morning — the day just getting going"
+    elif h < 15:
+        daypart = "midday, sun high"
+    elif h < 18:
+        daypart = "late afternoon"
+    elif h < 21:
+        daypart = "evening, the day winding down"
+    else:
+        daypart = "late evening, near nightfall"
+    sign_off = (h == config.ACTIVE_END - 1 and now.minute >= 30)
+    return daypart, sign_off
+
+
 def _reading_is_new(c) -> bool:
     """True unless we've already posted this exact buoy reading (by observed_at)."""
     if c.observed_at is None or not LAST_POST_FILE.exists():
@@ -110,7 +132,8 @@ def do_text(force: bool = False) -> int:
     if not force and not _reading_is_new(c):
         print(f"[text] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
         return 0
-    caption = captains_log(c)
+    daypart, sign_off = _time_context()
+    caption = captains_log(c, daypart=daypart, sign_off=sign_off)
     print(f"[text] posted: {facebook.post_text(caption)}")
     _mark_posted(c)
     return 0
@@ -125,7 +148,8 @@ def do_log(force: bool = False) -> int:
         print(f"[log] reading unchanged since last post ({stamp(c.observed_at)}) — skipping")
         return 0
     card = render.render_conditions_card(c)
-    caption = captains_log(c)
+    daypart, sign_off = _time_context()
+    caption = captains_log(c, daypart=daypart, sign_off=sign_off)
     print(f"[log] posted: {facebook.post_photo(card, caption)}")
     _mark_posted(c)
     return 0
@@ -136,9 +160,11 @@ def _post_video(clip) -> int:
         c, _ = get_conditions_cached()
     except NoDataError:
         c = Conditions()
+    daypart, sign_off = _time_context()
     caption = captains_log(
         c,
         view_hint="This post is a fresh ~15-second webcam clip looking out from the buoy across Lake Erie.",
+        daypart=daypart, sign_off=sign_off,
     )
     res = facebook.post_video(clip, caption, title="Buffalo Buoy — live look at Lake Erie")
     print(f"[video] posted: {res}")

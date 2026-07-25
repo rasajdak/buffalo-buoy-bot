@@ -74,6 +74,11 @@ in BOTH timing (this afternoon / tonight — never "tomorrow") AND substance: a 
 outlook stays fair — never conjure storms, "clouds building," or "changes brewing" \
 unless the outlook actually says so. Never let it crowd out the current conditions. \
 With NO outlook given, describe only the present and don't invent one.
+- Match the greeting and mood to the TIME OF DAY you're told: a fresh, waking feel in the \
+morning; an easy, sun-high tone midday; a settling, golden-hour calm as the day winds \
+down; a hushed, tucking-in feel at nightfall.
+- If told this is the FINAL post of the day, close with a warm goodnight sign-off — bid \
+the followers goodnight and leave the lake settling in for the night.
 - Plain text only: no markdown, no hashtags, at most one emoji.
 
 Return a JSON object: {"post": "<the caption text>", "gist": "<3-6 word tag of the angle you took>"}."""
@@ -119,7 +124,7 @@ def build_data_brief(c: Conditions) -> str:
     return "\n".join(parts) or "Readings temporarily unavailable."
 
 
-def _fallback(c: Conditions, view_hint: str = "") -> str:
+def _fallback(c: Conditions, view_hint: str = "", sign_off: bool = False) -> str:
     when = stamp(c.observed_at) if c.observed_at else "this hour"
     bits = []
     if c.wave_sig_ft is not None:
@@ -131,19 +136,30 @@ def _fallback(c: Conditions, view_hint: str = "") -> str:
     if c.air_temp_f is not None:
         bits.append(f"air {n(c.air_temp_f,0)}°F")
     cond = ", ".join(bits) if bits else "steady as she goes"
-    return f"Captain's Log, {when}. Out here off Buffalo: {cond}. Fair winds. — the Buffalo Buoy"
+    close = "Goodnight from the lake. — the Buffalo Buoy" if sign_off else "Fair winds. — the Buffalo Buoy"
+    return f"Captain's Log, {when}. Out here off Buffalo: {cond}. {close}"
 
 
-def captains_log(c: Conditions, view_hint: str = "") -> str:
-    """Return the finished caption text (persona body + link + hashtags)."""
+def captains_log(c: Conditions, view_hint: str = "",
+                 daypart: str | None = None, sign_off: bool = False) -> str:
+    """Return the finished caption text (persona body + link + hashtags).
+
+    daypart / sign_off are scheduling hints from the caller so the tone tracks the
+    time of day and the last post of the day gets a goodnight.
+    """
     if not config.USE_AI_CAPTIONS:
-        return f"{_fallback(c, view_hint)}\n\n{CONSOLE_URL}\n{HASHTAGS}"
+        return f"{_fallback(c, view_hint, sign_off)}\n\n{CONSOLE_URL}\n{HASHTAGS}"
 
     recent = _load_recent()
     focus = _next_focus()
     user = f"Current buoy readings:\n{build_data_brief(c)}\n"
     user += (f"\nLead with this angle as your lens (but still work in the waves, wind, "
              f"and water temp): {focus}\n")
+    if daypart:
+        user += f"\nTime of day right now: {daypart}. Match the greeting and mood to it.\n"
+    if sign_off:
+        user += ("\nThis is the FINAL post of the day — end with a warm goodnight sign-off "
+                 "from the buoy, leaving the lake settling in for the night.\n")
     try:
         import forecast, random
         outlook = forecast.get_outlook()
@@ -188,7 +204,7 @@ def captains_log(c: Conditions, view_hint: str = "") -> str:
         _remember(obj.get("gist", ""))
     except (requests.RequestException, KeyError, IndexError, json.JSONDecodeError) as e:
         print(f"[llm] OpenAI call failed ({e}); using fallback caption")
-        body = _fallback(c, view_hint)
+        body = _fallback(c, view_hint, sign_off)
 
     return f"{body}\n\n{CONSOLE_URL}\n{HASHTAGS}"
 
