@@ -1,9 +1,9 @@
 """Buffalo Buoy → Facebook bot. CLI orchestrator.
 
 Commands:
-  tick    The scheduler entry (run every 15 min): post the new webcam video if
-          S3 has one, otherwise post a text Captain's Log. Quiet outside the
-          active hours window.
+  tick    The scheduler entry (run hourly at :15): post the new webcam video if
+          S3 has one (clips land ~:10), otherwise post a text Captain's Log.
+          Quiet outside the active hours window.
   video   Post the webcam clip if there's a new one (no text fallback).
   text    Post a text-only Captain's Log now.
   log     Post a conditions *card* (image) + Captain's Log caption.
@@ -13,7 +13,7 @@ Global:
   --force     Ignore the active-hours window (for `tick`).
 
 Typical cron (VPS, local time):
-  */15 * * * *  cd /path/to/buoy-bot && ./.venv/bin/python main.py tick >> state/cron.log 2>&1
+  15 * * * *  cd /path/to/buoy-bot && ./.venv/bin/python main.py tick >> state/cron.log 2>&1
 """
 
 from __future__ import annotations
@@ -71,14 +71,14 @@ def _blocked_body(e: facebook.GraphError) -> str:
 def _time_context() -> tuple[str, bool]:
     """(rich time-context block, is-final-post-of-day) for the current local time.
 
-    First/last slots assume the :15,:45 cadence within the active window, so the
-    first-of-day note lands at :15 of the opening hour and the goodnight at :45 of
-    the closing hour.
+    First/last are keyed to the opening/closing active HOUR (cadence-agnostic): the
+    single hourly post in the first active hour is the day's first, and the one in
+    the last active hour is the goodnight.
     """
     import timectx
     now = dt.datetime.now(ZoneInfo(config.TIMEZONE))
-    first = (now.hour == config.ACTIVE_START and now.minute < 30)
-    last = (now.hour == config.ACTIVE_END - 1 and now.minute >= 30)
+    first = (now.hour == config.ACTIVE_START)
+    last = (now.hour == config.ACTIVE_END - 1)
     return timectx.build(now, first_of_day=first, last_of_day=last), last
 
 
